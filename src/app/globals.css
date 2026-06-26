@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: #0d0d11;
+  --color-foreground: #ffffff;
+  
+  --color-primary: #007bff;
+  --color-primary-hover: #0056b3;
+  --color-secondary: #e50914;
+  
+  --color-surface: #1a1a20;
+  --color-surface-hover: #26262d;
+  
+  --color-text-secondary: #b3b3b3;
+  --color-text-muted: #808080;
+}
+
+/* Base styles for the dark movie theme */
+:root {
+  --background: #0d0d11;
+  --foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+.glass-panel {
+  background: rgba(13, 13, 17, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Hide scrollbar for carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.text-shadow-md {
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0,0,0,0.8);
+}
