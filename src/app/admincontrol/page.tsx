@@ -28,8 +28,7 @@ export default function AdminControl() {
   const [editTab, setEditTab] = useState<'basic' | 'watch' | 'download' | 'categories'>('basic');
   const [filterQuery, setFilterQuery] = useState("");
   
-  const [pendingAdd, setPendingAdd] = useState<{item: any, type: "movie" | "tv"} | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // pendingAdd removed
 
   const filteredMedia = savedMedia.filter(item => item.title.toLowerCase().includes(filterQuery.toLowerCase()));
 
@@ -197,13 +196,7 @@ export default function AdminControl() {
     }
   };
 
-  const toggleCategory = (cat: string) => {
-    if (selectedCategories.includes(cat)) {
-      setSelectedCategories(selectedCategories.filter(c => c !== cat));
-    } else {
-      setSelectedCategories([...selectedCategories, cat]);
-    }
-  };
+  // toggleCategory removed
 
   const toggleEditCategory = (cat: string) => {
     const currentCats = editingItem.category ? editingItem.category.split(",").map((c: string) => c.trim()) : [];
@@ -803,51 +796,6 @@ export default function AdminControl() {
               </button>
               <button onClick={handleSaveEdit} className="px-8 py-3 bg-[#e50914] hover:bg-[#b80710] text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-[#e50914]/20 hover:shadow-[#e50914]/40 hover:-translate-y-0.5">
                 <Save size={18} /> Guardar Película
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modal para Seleccionar Categorías al Agregar */}
-      {pendingAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#1a1a24] rounded-xl border border-white/10 w-full max-w-md shadow-2xl overflow-hidden animate-fade-in">
-            <div className="flex justify-between items-center p-5 border-b border-white/5 bg-[#14141c]">
-              <h2 className="text-xl font-bold text-white">Categorías</h2>
-              <button onClick={() => setPendingAdd(null)} className="text-gray-400 hover:text-white bg-white/5 p-1.5 rounded-full transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-5 bg-[#0d0d11]">
-              <p className="text-sm text-gray-400 mb-4">
-                Elige en qué carruseles quieres que aparezca <strong>{pendingAdd.item.title || pendingAdd.item.name}</strong>.
-              </p>
-              <div className="grid grid-cols-1 gap-2 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
-                {AVAILABLE_CATEGORIES.map((cat) => {
-                  const isChecked = selectedCategories.includes(cat);
-                  return (
-                    <label key={cat} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isChecked ? 'bg-[#e50914]/20 border-[#e50914]' : 'bg-[#1a1a24] border-white/5 hover:border-white/20'}`}>
-                      <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={isChecked}
-                        onChange={() => toggleCategory(cat)}
-                      />
-                      <div className={`w-5 h-5 rounded flex items-center justify-center border ${isChecked ? 'bg-[#e50914] border-[#e50914]' : 'border-gray-500'}`}>
-                        {isChecked && <Check size={14} className="text-white" />}
-                      </div>
-                      <span className="text-sm font-medium text-white">{cat}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="p-5 border-t border-white/5 bg-[#14141c] flex justify-end gap-3">
-              <button onClick={() => setPendingAdd(null)} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white font-medium transition-colors">
-                Cancelar
-              </button>
-              <button onClick={saveToDatabase} className="px-6 py-2 bg-[#e50914] hover:bg-[#b80710] text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-[#e50914]/20">
-                <Save size={16} /> Guardar Contenido
               </button>
             </div>
           </div>
