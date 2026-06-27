@@ -126,8 +126,7 @@ export default function AdminControl() {
       const res = await fetch(`https://api.themoviedb.org/3/${type}/${tmdbId}?api_key=${API_KEY}&language=es`);
       const data = await res.json();
       if (data.id) {
-        setPendingAdd({ item: data, type });
-        setSelectedCategories([]);
+        handleOpenEditModal(data, type);
         setUrlInput("");
       } else {
         alert("No se encontró contenido con ese ID");
@@ -139,17 +138,8 @@ export default function AdminControl() {
     }
   };
 
-  const saveToDatabase = async () => {
-    if (!pendingAdd) return;
-    if (selectedCategories.length === 0) {
-      alert("Por favor selecciona al menos una categoría");
-      return;
-    }
-
-    const { item, type } = pendingAdd;
+  const handleOpenEditModal = (item: any, type: "movie" | "tv") => {
     const isMovie = type === "movie";
-    
-    // Format to our schema
     const formattedItem = {
       id: item.id.toString(),
       title: isMovie ? item.title : item.name,
@@ -158,25 +148,11 @@ export default function AdminControl() {
       rating: item.vote_average?.toFixed(1) || "N/A",
       slug: (isMovie ? item.title : item.name).toLowerCase().replace(/[\s\W-]+/g, '-'),
       imageUrl: item.poster_path ? `${TMDB_IMAGE_BASE}${item.poster_path}` : "https://via.placeholder.com/400x600?text=No+Image",
-      category: selectedCategories.join(", "),
-      overview: item.overview
+      category: "",
+      overview: item.overview,
+      isNew: true
     };
-
-    try {
-      const { error } = await supabase.from('media').insert([formattedItem]);
-      
-      if (error) {
-        alert(`Error: ${error.message}`);
-      } else {
-        setPendingAdd(null);
-        setSelectedCategories([]);
-        fetchSavedMedia();
-        alert("¡Agregado con éxito!");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Hubo un error al guardar");
-    }
+    setEditingItem(formattedItem);
   };
 
   const deleteItem = async (id: string) => {
@@ -193,13 +169,28 @@ export default function AdminControl() {
 
   const handleSaveEdit = async () => {
     if (!editingItem) return;
+    
+    // Validate basic fields
+    if (!editingItem.category) {
+      alert("Por favor selecciona al menos una categoría en la pestaña 'Categorías'");
+      setEditTab('categories');
+      return;
+    }
+
     try {
-      const { error } = await supabase.from('media').update(editingItem).eq('id', editingItem.id);
-      if (error) throw error;
+      if (editingItem.isNew) {
+        const { isNew, ...itemToSave } = editingItem;
+        const { error } = await supabase.from('media').insert([itemToSave]);
+        if (error) throw error;
+        alert("¡Agregado y guardado con éxito!");
+      } else {
+        const { error } = await supabase.from('media').update(editingItem).eq('id', editingItem.id);
+        if (error) throw error;
+        alert("¡Actualizado con éxito!");
+      }
       
       setEditingItem(null);
       fetchSavedMedia();
-      alert("¡Actualizado con éxito!");
     } catch (err) {
       console.error(err);
       alert("Hubo un error al guardar");
@@ -250,6 +241,63 @@ export default function AdminControl() {
       ...editingItem,
       [type]: currentLinks
     });
+  };
+
+  const addSeason = () => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = customData.seasonsData || [];
+    const newSeasonNumber = currentSeasons.length + 1;
+    setEditingItem({
+      ...editingItem,
+      customData: {
+        ...customData,
+        seasonsData: [...currentSeasons, { seasonNumber: newSeasonNumber, title: `Temporada ${newSeasonNumber}`, episodes: [] }]
+      }
+    });
+  };
+
+  const removeSeason = (seasonIndex: number) => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    currentSeasons.splice(seasonIndex, 1);
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
+  };
+
+  const addEpisode = (seasonIndex: number) => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    const newEpisodeNumber = currentSeasons[seasonIndex].episodes.length + 1;
+    currentSeasons[seasonIndex].episodes.push({ episodeNumber: newEpisodeNumber, title: `Capítulo ${newEpisodeNumber}`, watchLinks: [], downloadLinks: [] });
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
+  };
+
+  const removeEpisode = (seasonIndex: number, episodeIndex: number) => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    currentSeasons[seasonIndex].episodes.splice(episodeIndex, 1);
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
+  };
+
+  const addSeasonLink = (seasonIndex: number, episodeIndex: number, type: 'watchLinks' | 'downloadLinks' = 'watchLinks') => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    if (!currentSeasons[seasonIndex].episodes[episodeIndex][type]) currentSeasons[seasonIndex].episodes[episodeIndex][type] = [];
+    currentSeasons[seasonIndex].episodes[episodeIndex][type].push({ serverName: "", lang: "", url: "" });
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
+  };
+
+  const updateSeasonLink = (seasonIndex: number, episodeIndex: number, linkIndex: number, field: string, value: string, type: 'watchLinks' | 'downloadLinks' = 'watchLinks') => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    currentSeasons[seasonIndex].episodes[episodeIndex][type][linkIndex][field] = value;
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
+  };
+
+  const removeSeasonLink = (seasonIndex: number, episodeIndex: number, linkIndex: number, type: 'watchLinks' | 'downloadLinks' = 'watchLinks') => {
+    const customData = editingItem.customData || {};
+    const currentSeasons = [...(customData.seasonsData || [])];
+    currentSeasons[seasonIndex].episodes[episodeIndex][type].splice(linkIndex, 1);
+    setEditingItem({ ...editingItem, customData: { ...customData, seasonsData: currentSeasons } });
   };
 
   if (!isAuthenticated) {
@@ -408,13 +456,10 @@ export default function AdminControl() {
                         <p className="text-xs text-gray-500 mt-1">{item.release_date?.substring(0,4) || item.first_air_date?.substring(0,4)}</p>
                         <div className="flex mt-3">
                           <button 
-                            onClick={() => {
-                              setPendingAdd({ item, type: searchType });
-                              setSelectedCategories([]);
-                            }}
+                            onClick={() => handleOpenEditModal(item, searchType)}
                             className="bg-[#e50914]/20 text-[#e50914] hover:bg-[#e50914] hover:text-white px-3 py-1.5 rounded transition flex-1 text-sm font-bold flex items-center justify-center gap-1"
                           >
-                            <Plus size={16} /> Elegir Categorías
+                            <Plus size={16} /> Configurar y Añadir
                           </button>
                         </div>
                       </div>
@@ -570,42 +615,143 @@ export default function AdminControl() {
 
               {editTab === 'watch' && (
                 <div className="space-y-4 animate-fade-in">
-                  <div className="flex justify-between items-center bg-[#1a1a24] p-4 rounded-lg border border-white/5">
-                    <div>
-                      <h3 className="font-bold text-white">Servidores de Video</h3>
-                      <p className="text-xs text-gray-400">Agrega enlaces iframe para que se vean directamente en la página.</p>
-                    </div>
-                    <button onClick={() => addLink('watchLinks')} className="bg-[#e50914] hover:bg-[#b80710] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
-                      <Plus size={16} /> Agregar
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {(editingItem.watchLinks || []).map((link: any, idx: number) => (
-                      <div key={idx} className="bg-[#1a1a24] p-4 rounded-lg border border-white/10 flex flex-col gap-3 relative group">
-                        <button onClick={() => removeLink('watchLinks', idx)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button>
-                        <div className="grid grid-cols-2 gap-4 pr-8">
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1">Nombre del Servidor</label>
-                            <input type="text" placeholder="Ej: Fembed" value={link.serverName} onChange={e => updateLink('watchLinks', idx, 'serverName', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1">Idioma / Calidad</label>
-                            <input type="text" placeholder="Ej: Latino HD" value={link.lang} onChange={e => updateLink('watchLinks', idx, 'lang', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
-                          </div>
-                        </div>
+                  {editingItem.type === "Serie" ? (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center bg-[#1a1a24] p-4 rounded-lg border border-white/5">
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Enlace del iframe (URL)</label>
-                          <input type="text" placeholder="https://..." value={link.url} onChange={e => updateLink('watchLinks', idx, 'url', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
+                          <h3 className="font-bold text-white">Temporadas y Capítulos</h3>
+                          <p className="text-xs text-gray-400">Agrega temporadas y sus respectivos capítulos con enlaces de video.</p>
                         </div>
+                        <button onClick={addSeason} className="bg-[#e50914] hover:bg-[#b80710] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                          <Plus size={16} /> Agregar Temporada
+                        </button>
                       </div>
-                    ))}
-                    {!(editingItem.watchLinks?.length > 0) && (
-                      <div className="text-center py-8 text-gray-500 border-2 border-dashed border-white/5 rounded-lg">
-                        No hay servidores de video. Se mostrará el tráiler de YouTube.
+
+                      <div className="space-y-6">
+                        {(editingItem.customData?.seasonsData || []).map((season: any, sIdx: number) => (
+                          <div key={sIdx} className="bg-[#14141c] p-4 rounded-xl border border-white/10 relative">
+                            <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+                              <h4 className="font-bold text-white text-lg">Temporada {season.seasonNumber}</h4>
+                              <div className="flex gap-2">
+                                <button onClick={() => addEpisode(sIdx)} className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition-colors">
+                                  <Plus size={14} /> Capítulo
+                                </button>
+                                <button onClick={() => removeSeason(sIdx)} className="text-gray-500 hover:text-red-500 bg-white/5 hover:bg-red-500/10 p-1.5 rounded transition-colors">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              {season.episodes?.map((ep: any, eIdx: number) => (
+                                <div key={eIdx} className="bg-[#1a1a24] p-4 rounded-lg border border-white/5">
+                                  <div className="flex justify-between items-center mb-3">
+                                    <h5 className="font-semibold text-white text-sm">Capítulo {ep.episodeNumber}: {ep.title}</h5>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => addSeasonLink(sIdx, eIdx, 'watchLinks')} className="text-[#e50914] hover:text-[#ff0a16] text-xs font-bold flex items-center gap-1 transition-colors">
+                                        <Plus size={14} /> Reproductor
+                                      </button>
+                                      <button onClick={() => addSeasonLink(sIdx, eIdx, 'downloadLinks')} className="text-[#2196f3] hover:text-[#42a5f5] text-xs font-bold flex items-center gap-1 transition-colors">
+                                        <Plus size={14} /> Descarga
+                                      </button>
+                                      <button onClick={() => removeEpisode(sIdx, eIdx)} className="text-gray-500 hover:text-red-500 transition-colors ml-2">
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-4">
+                                    {ep.watchLinks?.length > 0 && (
+                                      <div className="space-y-2">
+                                        <h6 className="text-xs text-gray-400 font-bold uppercase tracking-wider">Enlaces de Reproductor</h6>
+                                        {ep.watchLinks.map((link: any, lIdx: number) => (
+                                          <div key={lIdx} className="flex flex-col gap-2 bg-[#0d0d11] p-3 rounded border border-white/5 relative group">
+                                            <button onClick={() => removeSeasonLink(sIdx, eIdx, lIdx, 'watchLinks')} className="absolute top-2 right-2 text-gray-600 hover:text-red-500"><X size={14} /></button>
+                                            <div className="grid grid-cols-2 gap-3 pr-6">
+                                              <input type="text" placeholder="Servidor (Ej: Mega)" value={link.serverName} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'serverName', e.target.value, 'watchLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                              <input type="text" placeholder="Idioma (Ej: Latino)" value={link.lang} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'lang', e.target.value, 'watchLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                            </div>
+                                            <input type="text" placeholder="URL del iframe..." value={link.url} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'url', e.target.value, 'watchLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {ep.downloadLinks?.length > 0 && (
+                                      <div className="space-y-2">
+                                        <h6 className="text-xs text-gray-400 font-bold uppercase tracking-wider">Enlaces de Descarga</h6>
+                                        {ep.downloadLinks.map((link: any, lIdx: number) => (
+                                          <div key={`dl-${lIdx}`} className="flex flex-col gap-2 bg-[#0d0d11] p-3 rounded border border-white/5 relative group">
+                                            <button onClick={() => removeSeasonLink(sIdx, eIdx, lIdx, 'downloadLinks')} className="absolute top-2 right-2 text-gray-600 hover:text-red-500"><X size={14} /></button>
+                                            <div className="grid grid-cols-2 gap-3 pr-6">
+                                              <input type="text" placeholder="Servidor (Ej: Mega)" value={link.serverName} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'serverName', e.target.value, 'downloadLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                              <input type="text" placeholder="Calidad/Idioma" value={link.lang} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'lang', e.target.value, 'downloadLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                            </div>
+                                            <input type="text" placeholder="URL de descarga..." value={link.url} onChange={e => updateSeasonLink(sIdx, eIdx, lIdx, 'url', e.target.value, 'downloadLinks')} className="w-full bg-[#1a1a24] border border-white/5 rounded px-3 py-1.5 text-white text-xs outline-none" />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {!(ep.watchLinks?.length > 0) && !(ep.downloadLinks?.length > 0) && (
+                                      <p className="text-xs text-gray-500 text-center py-2">Sin enlaces para este capítulo</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              {!(season.episodes?.length > 0) && (
+                                <p className="text-sm text-gray-500 text-center py-4 border border-dashed border-white/5 rounded-lg">No hay capítulos en esta temporada</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {!(editingItem.customData?.seasonsData?.length > 0) && (
+                          <div className="text-center py-8 text-gray-500 border-2 border-dashed border-white/5 rounded-lg">
+                            No has agregado ninguna temporada.
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center bg-[#1a1a24] p-4 rounded-lg border border-white/5">
+                        <div>
+                          <h3 className="font-bold text-white">Servidores de Video</h3>
+                          <p className="text-xs text-gray-400">Agrega enlaces iframe para que se vean directamente en la página.</p>
+                        </div>
+                        <button onClick={() => addLink('watchLinks')} className="bg-[#e50914] hover:bg-[#b80710] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                          <Plus size={16} /> Agregar
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {(editingItem.watchLinks || []).map((link: any, idx: number) => (
+                          <div key={idx} className="bg-[#1a1a24] p-4 rounded-lg border border-white/10 flex flex-col gap-3 relative group">
+                            <button onClick={() => removeLink('watchLinks', idx)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 transition-colors p-2"><Trash2 size={18} /></button>
+                            <div className="grid grid-cols-2 gap-4 pr-8">
+                              <div>
+                                <label className="block text-xs text-gray-400 mb-1">Nombre del Servidor</label>
+                                <input type="text" placeholder="Ej: Fembed" value={link.serverName} onChange={e => updateLink('watchLinks', idx, 'serverName', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-400 mb-1">Idioma / Calidad</label>
+                                <input type="text" placeholder="Ej: Latino HD" value={link.lang} onChange={e => updateLink('watchLinks', idx, 'lang', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-400 mb-1">Enlace del iframe (URL)</label>
+                              <input type="text" placeholder="https://..." value={link.url} onChange={e => updateLink('watchLinks', idx, 'url', e.target.value)} className="w-full bg-[#0d0d11] border border-white/5 rounded px-3 py-2 text-white text-sm focus:border-white/20 outline-none" />
+                            </div>
+                          </div>
+                        ))}
+                        {!(editingItem.watchLinks?.length > 0) && (
+                          <div className="text-center py-8 text-gray-500 border-2 border-dashed border-white/5 rounded-lg">
+                            No hay servidores de video. Se mostrará el tráiler de YouTube.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
