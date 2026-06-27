@@ -9,8 +9,14 @@ export default function DTPAppDownloadPage() {
 
   const handleDownload = (e: React.MouseEvent) => {
     e.preventDefault();
-    setShowModal(true);
+    const link = document.createElement('a');
+    link.href = '/detodopeliculas.apk';
+    link.download = 'PelixStream.apk';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
+
 
   const MockPhone = ({ className, screenshot, zIndex, transformClasses, floatDelay = '0s' }: any) => (
     <div 
@@ -103,7 +109,7 @@ export default function DTPAppDownloadPage() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50 rounded-lg pointer-events-none"></div>
             <Play className="w-4 h-4 text-white fill-white ml-0.5 z-10" />
           </div>
-          <span className="text-white font-bold text-xl tracking-wide">DTP</span>
+          <span className="text-white font-bold text-xl tracking-wide">PelixStream</span>
         </div>
         <button 
           onClick={handleDownload}
@@ -141,7 +147,7 @@ export default function DTPAppDownloadPage() {
               Android
             </button>
             <button 
-              onClick={handleDownload}
+              onClick={(e) => { e.preventDefault(); setShowModal(true); }}
               className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-black hover:bg-gray-100 px-8 py-4 rounded-[1rem] font-bold text-lg transition-transform hover:scale-105 shadow-xl"
             >
               <Apple className="w-5 h-5 fill-black" />
@@ -154,7 +160,7 @@ export default function DTPAppDownloadPage() {
           </a>
           
           <div className="text-xs text-gray-500 font-medium hidden lg:block">
-            <span className="text-white font-bold">Versión 0.75.0</span> · Android 6+ · ~5 MB · Android e iPhone
+            <span className="text-white font-bold">Versión 1.0.0</span> · Android 6+ · ~6 MB · Android e iPhone
           </div>
         </div>
 
@@ -182,7 +188,7 @@ export default function DTPAppDownloadPage() {
       {/* DTP en Acción */}
       <section className="py-20 md:py-24 px-4 md:px-8 max-w-7xl mx-auto text-center border-t border-white/5 relative overflow-hidden">
         <h2 className="text-4xl md:text-5xl font-black text-white mb-6">
-          DTP <span className="text-[#e50914] drop-shadow-[0_0_15px_rgba(229,9,20,0.4)]">en acción</span>
+          PelixStream <span className="text-[#e50914] drop-shadow-[0_0_15px_rgba(229,9,20,0.4)]">en acción</span>
         </h2>
         <div className="w-16 h-1 bg-[#e50914] mx-auto mb-6 rounded-full shadow-[0_0_10px_rgba(229,9,20,0.5)]"></div>
         <p className="text-lg md:text-xl text-gray-400 mb-12 md:mb-20 px-4">Una interfaz cuidada, pensada para encontrar y mirar sin distracciones.</p>

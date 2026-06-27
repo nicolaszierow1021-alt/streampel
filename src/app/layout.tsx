@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import NextTopLoader from 'nextjs-toploader';
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+
+export const viewport = {
+  themeColor: "#000000",
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,6 +67,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <NextTopLoader 
+          color="#e50914"
+          showSpinner={false}
+          shadow="0 0 10px #e50914,0 0 5px #e50914"
+        />
+        <ServiceWorkerRegister />
         {children}
         <BottomNav />
       </body>
