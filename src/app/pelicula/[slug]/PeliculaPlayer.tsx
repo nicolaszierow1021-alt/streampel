@@ -194,18 +194,18 @@ export default function PeliculaPlayer({
                 <Play className="w-8 h-8 text-white fill-current ml-1" />
               </div>
             </div>
+            {/* Fake Controls */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent flex items-center gap-4 transition-opacity duration-300 z-30 opacity-0 group-hover:opacity-100">
+              <button onClick={() => setIsPlaying(true)}>
+                <Play className="w-5 h-5 text-white fill-current" />
+              </button>
+              <div className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
+                <div className="w-1/3 h-full bg-[#e50914]"></div>
+              </div>
+              <span className="text-white text-xs font-medium">0:00 / {runtimeStr || "2:00"}</span>
+            </div>
           </>
         )}
-        {/* Fake Controls */}
-        <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent flex items-center gap-4 transition-opacity duration-300 z-30 ${isPlaying ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
-          <button onClick={() => setIsPlaying(!isPlaying)}>
-            {isPlaying ? <Pause className="w-5 h-5 text-white fill-current" /> : <Play className="w-5 h-5 text-white fill-current" />}
-          </button>
-          <div className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
-            <div className="w-1/3 h-full bg-[#e50914]"></div>
-          </div>
-          <span className="text-white text-xs font-medium">0:00 / {runtimeStr || "2:00"}</span>
-        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
